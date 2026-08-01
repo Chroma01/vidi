@@ -12,6 +12,11 @@ import matplotlib.pyplot as plt
 import json
 import pandas as pd
 
+try:
+    _trapezoid = np.trapezoid
+except AttributeError:  # NumPy < 2.0
+    _trapezoid = np.trapz
+
 # base colors for visualization
 BASE_COLORS = ['blue', 'red', 'green', 'orange', 'cyan', 'grey', 'brown', 'purple', 'pink', 'olive', 'black',\
                'indianred', 'chocolate', 'darkolivegreen', 'gold', 'darkcyan', 'slategrey', 'darkblue', 'indigo'\
@@ -33,7 +38,7 @@ def draw_plot(result_rates, attribute, plot_name, output_dir=''):
 
     thres = np.linspace(0, 1, 101)
     # calculate AUC for each model
-    auc_scores = {algo: np.trapz(result_rate, thres)*100 for algo, result_rate in result_rates.items()}
+    auc_scores = {algo: _trapezoid(result_rate, thres)*100 for algo, result_rate in result_rates.items()}
     colors = {algo: BASE_COLORS[idx] for idx, (algo, _) in enumerate(result_rates.items())}
 
     # sort models by AUC scores
@@ -146,7 +151,7 @@ def success_overlap(results):
         iou[i] = overlap_ratio(results[i]['answer'], results[i]['gt'])
     for i in range(len(thres)):
         success[i] = np.sum(iou > thres[i]) / float(n_query+1e-16)
-    auc = np.trapz(success, thres) # success score is the normalized area under the curve
+    auc = _trapezoid(success, thres) # success score is the normalized area under the curve
     return success, auc
 
 # compute precision/recall scores over thresholds
@@ -289,8 +294,8 @@ def compute_precision_recall(results, avg=True):
             precision_thres[i] = np.mean(precision >= t)
             recall_thres[i] = np.mean(recall >= t)
         
-        precision = np.trapz(precision_thres, thres)
-        recall = np.trapz(recall_thres, thres)
+        precision = _trapezoid(precision_thres, thres)
+        recall = _trapezoid(recall_thres, thres)
 
     return precision, recall
 
@@ -385,4 +390,4 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", default='results', help="The path to save results.")
     args = parser.parse_args()
     # Evaluate the results
-    evaluate_results(args.output_dir, args.pred_path, args.gt_path)    
+    evaluate_results(args.output_dir, args.pred_path, args.gt_path)
